@@ -118,6 +118,22 @@ class TouchFileLogger private constructor(private val appContext: Context) {
         }
     }
 
+    suspend fun getFullLogText(): String = withContext(Dispatchers.IO) {
+        val file = getLogFile()
+        if (!file.exists() || file.length() == 0L) {
+            return@withContext "No touches recorded yet"
+        }
+        try {
+            return@withContext file.readText().trim()
+        } catch (e: Exception) {
+            return@withContext "Error reading file: ${e.localizedMessage}"
+        }
+    }
+
+    fun flushBuffer() {
+        // Immediate disk write mode is active; buffer is already flushed.
+    }
+
     fun clearLog() {
         totalTouchCount.set(0)
         lastTouchedCell = -1

@@ -1,6 +1,8 @@
 package com.scientific.pixelgrid
 
 import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -10,12 +12,16 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
+import android.widget.ScrollView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.scientific.pixelgrid.databinding.ActivityMainBinding
+import com.scientific.pixelgrid.model.DisplayMetricsHelper
 import com.scientific.pixelgrid.model.GridCalculator
 import com.scientific.pixelgrid.service.GlobalTouchAccessibilityService
 import com.scientific.pixelgrid.service.TouchTrackingService
@@ -55,7 +61,6 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             logger.recentPreviewFlow.collect { preview ->
                 binding.tvLogPreview.text = preview
-                binding.tvTouchCounter.text = "Total Recorded Touches: ${logger.getTotalCount()}"
             }
         }
 
@@ -121,6 +126,34 @@ class MainActivity : AppCompatActivity() {
         binding.btnOpenCalibration.setOnClickListener {
             val intent = Intent(this, CalibrationActivity::class.java)
             startActivity(intent)
+        }
+
+        // View Full Log in Popup Dialog
+        binding.btnViewFullLog.setOnClickListener {
+            lifecycleScope.launch {
+                val fullText = logger.getFullLogText()
+                val totalCount = logger.getTotalCount()
+
+                val textView = TextView(this@MainActivity).apply {
+                    text = fullText
+                    setPadding(40, 20, 40, 20)
+                    setTextIsSelectable(true)
+                }
+                val scrollView = ScrollView(this@MainActivity).apply {
+                    addView(textView)
+                }
+
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle("Complete touch_log.txt ($totalCount touches)")
+                    .setView(scrollView)
+                    .setPositiveButton("Copy All") { _, _ ->
+                        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        clipboard.setPrimaryClip(ClipData.newPlainText("touch_log", fullText))
+                        Toast.makeText(this@MainActivity, "Copied full log to clipboard!", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("Close", null)
+                    .show()
+            }
         }
 
         // Export Log
@@ -237,8 +270,6 @@ class MainActivity : AppCompatActivity() {
             binding.tvAccessibilityStatus.setTextColor(Color.parseColor("#F59E0B"))
             binding.btnOpenAccessibility.text = "Enable Always-On Tracking"
         }
-
-        binding.tvTouchCounter.text = "Total Recorded Touches: ${logger.getTotalCount()}"
 
         lifecycleScope.launch {
             binding.tvLogPreview.text = logger.getRecentPreview(25)

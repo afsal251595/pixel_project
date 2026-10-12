@@ -202,20 +202,19 @@
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/tvTouchCounter"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="Total Recorded Touches: 0"
-                    android:textColor="@color/accent_amber"
-                    android:textSize="13sp" />
+                    android:layout_marginTop="8dp"
+                    android:text="Recent Touches (Last 25 shown below, all touches saved to file):"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
 
                 <!-- Formatted sequence preview -->
                 <TextView
                     android:id="@+id/tvLogPreview"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
+                    android:layout_marginTop="6dp"
                     android:background="#0A0E14"
                     android:fontFamily="monospace"
                     android:padding="12dp"
@@ -223,10 +222,19 @@
                     android:textColor="@color/text_primary"
                     android:textSize="14sp" />
 
+                <Button
+                    android:id="@+id/btnViewFullLog"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:backgroundTint="@color/card_stroke"
+                    android:text="View Full touch_log.txt File"
+                    android:textColor="@color/text_primary" />
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="8dp"
                     android:orientation="horizontal">
 
                     <Button
