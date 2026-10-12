@@ -99,8 +99,11 @@ class AppUpdater(
 
     private fun isNewer(latest: String, current: String): Boolean {
         if (latest.isEmpty()) return false
-        val latestParts = latest.split(".").mapNotNull { it.toIntOrNull() }
-        val currentParts = current.split(".").mapNotNull { it.toIntOrNull() }
+        val normalizedLatest = latest.replace("-", ".")
+        val normalizedCurrent = current.replace("-", ".")
+
+        val latestParts = normalizedLatest.split(".").mapNotNull { it.toIntOrNull() }
+        val currentParts = normalizedCurrent.split(".").mapNotNull { it.toIntOrNull() }
 
         val size = maxOf(latestParts.size, currentParts.size)
         for (i in 0 until size) {
