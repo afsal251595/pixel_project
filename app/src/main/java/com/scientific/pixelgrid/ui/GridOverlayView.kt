@@ -118,7 +118,6 @@ class GridOverlayView @JvmOverloads constructor(
                 val cellId = calc.getCellNumber(event.x, event.y)
                 if (cellId != currentlyTouchedCell) {
                     currentlyTouchedCell = cellId
-                    logger?.recordTouch(cellId)
                     onCellTouched?.invoke(cellId)
                     invalidate()
                 }

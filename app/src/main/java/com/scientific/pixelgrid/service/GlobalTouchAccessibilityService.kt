@@ -13,6 +13,7 @@ import android.view.View
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import com.scientific.pixelgrid.PixelGridApplication
 import com.scientific.pixelgrid.model.DisplayMetricsHelper
 import com.scientific.pixelgrid.model.GridCalculator
 import com.scientific.pixelgrid.storage.TouchFileLogger
@@ -20,8 +21,9 @@ import com.scientific.pixelgrid.storage.TouchFileLogger
 /**
  * 24/7 Crash-Proof Global Touch Interceptor using Android AccessibilityService
  * combined with a non-intrusive 1x1 TYPE_ACCESSIBILITY_OVERLAY pass-through listener.
- * Captures exact physical touch coordinates (X, Y) across all apps, keyboard,
+ * Captures exact physical touch coordinates (X, Y) across all external apps, keyboard,
  * and home screen launcher without interrupting or lagging user interactions.
+ * Automatically pauses logging when our app is in the foreground.
  */
 class GlobalTouchAccessibilityService : AccessibilityService() {
 
@@ -102,14 +104,20 @@ class GlobalTouchAccessibilityService : AccessibilityService() {
             val view = View(this).apply {
                 setBackgroundColor(Color.TRANSPARENT)
                 setOnTouchListener { _, event ->
+                    // Do not record touches when our app is open in foreground
+                    if (PixelGridApplication.isAppInForeground) {
+                        return@setOnTouchListener false
+                    }
+
                     val action = event.actionMasked
                     if (action == MotionEvent.ACTION_OUTSIDE || action == MotionEvent.ACTION_DOWN) {
-                        val touchX = if (event.rawX > 0f) event.rawX else event.x
-                        val touchY = if (event.rawY > 0f) event.rawY else event.y
+                        val touchX = if (event.rawX != 0f) event.rawX else event.x
+                        val touchY = if (event.rawY != 0f) event.rawY else event.y
 
                         if (touchX > 0f || touchY > 0f) {
                             val now = System.currentTimeMillis()
-                            if (now - lastRecordedTime >= 100) { // 100ms debounce
+                            // 20ms debounce: ultra-fast, catches rapid successive taps with zero drops
+                            if (now - lastRecordedTime >= 20) {
                                 lastRecordedTime = now
                                 val cell = gridCalculator.getCellNumber(touchX, touchY)
                                 logger.recordTouch(cell)
@@ -131,6 +139,11 @@ class GlobalTouchAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
+
+        // Do not record touches when our app is open in foreground or from our package
+        if (PixelGridApplication.isAppInForeground || event.packageName == packageName) {
+            return
+        }
 
         try {
             val now = System.currentTimeMillis()

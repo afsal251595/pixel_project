@@ -36,7 +36,7 @@ class CalibrationActivity : AppCompatActivity() {
         binding.gridOverlayView.setup(calculator, logger)
 
         binding.gridOverlayView.onCellTouched = { cellId ->
-            binding.tvTouchFeedback.text = "Touched Cell: #$cellId | Logged to touch_log.txt"
+            binding.tvTouchFeedback.text = "Touched Cell: #$cellId (Visual Ruler Test - Not Logged)"
         }
 
         binding.btnCloseCalibration.setOnClickListener {
