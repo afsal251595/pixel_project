@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Touch Grid Tracker</string>
+    <string name="service_notification_title">Touch Grid Tracker Active</string>
+    <string name="service_notification_desc">Continuous 5cm x 5cm touch logging running in background.</string>
+</resources>
