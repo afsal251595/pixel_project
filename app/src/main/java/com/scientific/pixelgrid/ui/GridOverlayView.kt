@@ -10,9 +10,10 @@ import android.view.MotionEvent
 import android.view.View
 import com.scientific.pixelgrid.model.GridCalculator
 import com.scientific.pixelgrid.storage.TouchFileLogger
+import kotlin.math.min
 
 /**
- * Custom View that visually renders the 5cm x 5cm numbered grid cells (1 to N)
+ * Custom View that visually renders the 5mm x 5mm numbered grid cells (1 to N)
  * and provides interactive touch feedback.
  */
 class GridOverlayView @JvmOverloads constructor(
@@ -28,30 +29,28 @@ class GridOverlayView @JvmOverloads constructor(
     // Drawing paints
     private val gridLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#334155")
-        strokeWidth = 2.5f
+        strokeWidth = 1.0f
         style = Paint.Style.STROKE
     }
 
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#94A3B8")
-        textSize = 42f
         textAlign = Paint.Align.CENTER
     }
 
     private val activeCellPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#38BDF8")
         style = Paint.Style.FILL
-        alpha = 80
+        alpha = 100
     }
 
     private val activeBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#00E5FF")
-        strokeWidth = 6f
+        strokeWidth = 2.5f
         style = Paint.Style.STROKE
     }
 
     private var currentlyTouchedCell: Int = -1
-    private val cellRect = RectF()
 
     fun setup(calculator: GridCalculator, fileLogger: TouchFileLogger) {
         this.gridCalculator = calculator
@@ -85,7 +84,10 @@ class GridOverlayView @JvmOverloads constructor(
             canvas.drawLine(0f, y, width.toFloat(), y, gridLinePaint)
         }
 
-        // 3. Draw sequential cell indices (1 to N)
+        // 3. Draw sequential cell indices (1 to N) sized for 5mm cells
+        val fontSize = min(cellW, cellH) * 0.32f
+        textPaint.textSize = fontSize
+
         for (r in 0 until rows) {
             for (c in 0 until cols) {
                 val cellId = (r * cols) + c + 1
@@ -95,11 +97,11 @@ class GridOverlayView @JvmOverloads constructor(
                 // Highlight text of active cell
                 if (cellId == currentlyTouchedCell) {
                     textPaint.color = Color.parseColor("#00E5FF")
-                    textPaint.textSize = 52f
+                    textPaint.textSize = fontSize * 1.3f
                     textPaint.isFakeBoldText = true
                 } else {
                     textPaint.color = Color.parseColor("#64748B")
-                    textPaint.textSize = 38f
+                    textPaint.textSize = fontSize
                     textPaint.isFakeBoldText = false
                 }
 

@@ -64,17 +64,36 @@
                     android:textSize="14sp" />
 
                 <TextView
+                    android:id="@+id/tvAccessibilityStatus"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="Passes touches through without blocking WhatsApp, calls, or other phone apps."
+                    android:text="Always-On System Tracking: Not enabled yet"
+                    android:textColor="@color/accent_amber"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Records all touches transparently across WhatsApp, calls, YouTube, and keyboard."
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp" />
+
+                <Button
+                    android:id="@+id/btnOpenAccessibility"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:backgroundTint="@color/secondary"
+                    android:text="Enable Always-On Tracking (Settings)"
+                    android:textColor="@color/text_primary" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
+                    android:layout_marginTop="8dp"
                     android:orientation="horizontal">
 
                     <Button
@@ -83,7 +102,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:backgroundTint="@color/accent_green"
-                        android:text="Start Background Service"
+                        android:text="Pause Service"
                         android:textColor="#000000"
                         android:textStyle="bold" />
 

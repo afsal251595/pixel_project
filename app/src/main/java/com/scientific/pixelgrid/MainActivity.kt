@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.scientific.pixelgrid.databinding.ActivityMainBinding
 import com.scientific.pixelgrid.model.GridCalculator
+import com.scientific.pixelgrid.service.GlobalTouchAccessibilityService
 import com.scientific.pixelgrid.service.TouchTrackingService
 import com.scientific.pixelgrid.storage.TouchFileLogger
 import com.scientific.pixelgrid.updater.AppUpdater
@@ -33,8 +34,6 @@ class MainActivity : AppCompatActivity() {
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
                 startTrackerService()
-            } else {
-                Toast.makeText(this, "Notification permission needed for 2-week service", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -48,6 +47,9 @@ class MainActivity : AppCompatActivity() {
 
         initGridCalculator()
         setupListeners()
+
+        // Auto-start background tracker service on launch
+        checkPermissionsAndStart()
         updateUI()
     }
 
@@ -62,13 +64,14 @@ class MainActivity : AppCompatActivity() {
             screenWidthPx = metrics.widthPixels,
             screenHeightPx = metrics.heightPixels,
             xdpi = metrics.xdpi,
-            ydpi = metrics.ydpi
+            ydpi = metrics.ydpi,
+            targetCellSizeMm = 5.0f // Exact 5mm x 5mm cells
         )
 
         binding.tvGridDetails.text = buildString {
             append("Screen: ${calculator.screenWidthPx} x ${calculator.screenHeightPx} px\n")
             append("Hardware DPI: ${calculator.effectiveXdpi.toInt()} xdpi, ${calculator.effectiveYdpi.toInt()} ydpi\n")
-            append("Cell Size: 5.0 cm x 5.0 cm (~${calculator.cellWidthPx.toInt()} x ${calculator.cellHeightPx.toInt()} px)\n")
+            append("Cell Size: 5.0 mm x 5.0 mm (~${calculator.cellWidthPx.toInt()} x ${calculator.cellHeightPx.toInt()} px)\n")
             append("Grid Matrix: ${calculator.columns} Columns x ${calculator.rows} Rows\n")
             append("Total Cells: ${calculator.totalCells} (Numbered 1 to ${calculator.totalCells})")
         }
@@ -87,6 +90,13 @@ class MainActivity : AppCompatActivity() {
         // Whitelist Battery Optimization
         binding.btnBatteryWhitelist.setOnClickListener {
             requestBatteryOptimizationExemption()
+        }
+
+        // Open Accessibility Settings for Always-On Global Tracking
+        binding.btnOpenAccessibility.setOnClickListener {
+            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            startActivity(intent)
+            Toast.makeText(this, "Enable 'Touch Grid Tracker' to capture touches across all apps", Toast.LENGTH_LONG).show()
         }
 
         // Open Calibration / Visual Test Screen
@@ -139,7 +149,6 @@ class MainActivity : AppCompatActivity() {
         } else {
             startService(intent)
         }
-        Toast.makeText(this, "2-Week Background Tracker started", Toast.LENGTH_SHORT).show()
         updateUI()
     }
 
@@ -148,7 +157,6 @@ class MainActivity : AppCompatActivity() {
             action = TouchTrackingService.ACTION_STOP
         }
         startService(intent)
-        Toast.makeText(this, "Background Tracker stopped", Toast.LENGTH_SHORT).show()
         updateUI()
     }
 
@@ -189,21 +197,33 @@ class MainActivity : AppCompatActivity() {
     private fun updateUI() {
         val isRunning = TouchTrackingService.isRunning
         if (isRunning) {
-            binding.tvServiceStatus.text = "Status: Active (Continuous 2-Week Logging)"
+            binding.tvServiceStatus.text = "Background Engine: Active (Recording touches)"
             binding.tvServiceStatus.setTextColor(Color.parseColor("#10B981"))
-            binding.btnToggleService.text = "Stop Background Service"
+            binding.btnToggleService.text = "Pause Service"
             binding.btnToggleService.backgroundTintList = ContextCompat.getColorStateList(this, R.color.accent_rose)
         } else {
-            binding.tvServiceStatus.text = "Status: Stopped"
+            binding.tvServiceStatus.text = "Background Engine: Paused"
             binding.tvServiceStatus.setTextColor(Color.parseColor("#F43F5E"))
-            binding.btnToggleService.text = "Start Background Service"
+            binding.btnToggleService.text = "Resume Service"
             binding.btnToggleService.backgroundTintList = ContextCompat.getColorStateList(this, R.color.accent_green)
+        }
+
+        // Accessibility status
+        val isAccessibilityOn = GlobalTouchAccessibilityService.isServiceActive
+        if (isAccessibilityOn) {
+            binding.tvAccessibilityStatus.text = "Always-On System Tracking: ACTIVE across all apps"
+            binding.tvAccessibilityStatus.setTextColor(Color.parseColor("#10B981"))
+            binding.btnOpenAccessibility.text = "Accessibility Active"
+        } else {
+            binding.tvAccessibilityStatus.text = "Always-On Tracking: Not enabled yet"
+            binding.tvAccessibilityStatus.setTextColor(Color.parseColor("#F59E0B"))
+            binding.btnOpenAccessibility.text = "Enable Always-On Tracking"
         }
 
         binding.tvTouchCounter.text = "Total Recorded Touches: ${logger.getTotalCount()}"
 
         lifecycleScope.launch {
-            binding.tvLogPreview.text = logger.getRecentPreview(20)
+            binding.tvLogPreview.text = logger.getRecentPreview(25)
         }
     }
 }
