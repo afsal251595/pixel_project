@@ -84,8 +84,8 @@ class GridOverlayView @JvmOverloads constructor(
             canvas.drawLine(0f, y, width.toFloat(), y, gridLinePaint)
         }
 
-        // 3. Draw sequential cell indices (1 to N) sized for 5mm cells
-        val fontSize = min(cellW, cellH) * 0.32f
+        // 3. Draw sequential cell indices (1 to N) sized for 7mm x 10mm cells
+        val fontSize = min(cellW, cellH) * 0.38f
         textPaint.textSize = fontSize
 
         for (r in 0 until rows) {

@@ -7,19 +7,21 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Calculates physical 5mm x 5mm grid parameters on Android display metrics.
+ * Calculates physical 7mm (width) x 10mm (height) grid parameters on Android display metrics.
  * 
  * 1 inch = 25.4 mm
- * 5 mm in inches = 5.0 / 25.4 = ~0.19685 inches
- * Cell width (px)  = (5.0 / 25.4) * xdpi
- * Cell height (px) = (5.0 / 25.4) * ydpi
+ * 7 mm in inches = 7.0 / 25.4 = ~0.27559 inches
+ * 10 mm in inches = 10.0 / 25.4 = ~0.39370 inches
+ * Cell width (px)  = (7.0 / 25.4) * xdpi
+ * Cell height (px) = (10.0 / 25.4) * ydpi
  */
 class GridCalculator(
     val screenWidthPx: Int,
     val screenHeightPx: Int,
     val xdpi: Float,
     val ydpi: Float,
-    val targetCellSizeMm: Float = 5.0f,
+    val targetCellWidthMm: Float = 7.0f,
+    val targetCellHeightMm: Float = 10.0f,
     var calibrationScale: Float = 1.0f // Fine-tuning calibration factor
 ) {
     companion object {
@@ -30,12 +32,12 @@ class GridCalculator(
     val effectiveXdpi: Float get() = max(1.0f, xdpi * calibrationScale)
     val effectiveYdpi: Float get() = max(1.0f, ydpi * calibrationScale)
 
-    // Cell physical dimensions converted to pixels for 5mm x 5mm
+    // Cell physical dimensions converted to pixels for 7mm width x 10mm height
     val cellWidthPx: Float
-        get() = (targetCellSizeMm / MM_PER_INCH) * effectiveXdpi
+        get() = (targetCellWidthMm / MM_PER_INCH) * effectiveXdpi
 
     val cellHeightPx: Float
-        get() = (targetCellSizeMm / MM_PER_INCH) * effectiveYdpi
+        get() = (targetCellHeightMm / MM_PER_INCH) * effectiveYdpi
 
     // Number of columns and rows required to cover the screen
     val columns: Int
@@ -87,7 +89,7 @@ class GridCalculator(
     fun getSummary(): String {
         return "Screen: ${screenWidthPx}x${screenHeightPx}px | " +
                 "DPI: ${effectiveXdpi.toInt()}x${effectiveYdpi.toInt()} | " +
-                "Cell: 5mm x 5mm (~${cellWidthPx.toInt()}x${cellHeightPx.toInt()}px) | " +
+                "Cell: 7mm W x 10mm H (~${cellWidthPx.toInt()}x${cellHeightPx.toInt()}px) | " +
                 "Grid: ${columns} cols x ${rows} rows ($totalCells cells)"
     }
 }

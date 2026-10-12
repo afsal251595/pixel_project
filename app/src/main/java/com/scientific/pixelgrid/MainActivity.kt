@@ -83,13 +83,14 @@ class MainActivity : AppCompatActivity() {
             screenHeightPx = metrics.heightPixels,
             xdpi = metrics.xdpi,
             ydpi = metrics.ydpi,
-            targetCellSizeMm = 5.0f // Exact 5mm x 5mm cells
+            targetCellWidthMm = 7.0f, // 7mm width
+            targetCellHeightMm = 10.0f // 10mm height
         )
 
         binding.tvGridDetails.text = buildString {
             append("Screen: ${calculator.screenWidthPx} x ${calculator.screenHeightPx} px\n")
             append("Hardware DPI: ${calculator.effectiveXdpi.toInt()} xdpi, ${calculator.effectiveYdpi.toInt()} ydpi\n")
-            append("Cell Size: 5.0 mm x 5.0 mm (~${calculator.cellWidthPx.toInt()} x ${calculator.cellHeightPx.toInt()} px)\n")
+            append("Cell Size: 7.0 mm (W) x 10.0 mm (H) (~${calculator.cellWidthPx.toInt()} x ${calculator.cellHeightPx.toInt()} px)\n")
             append("Grid Matrix: ${calculator.columns} Columns x ${calculator.rows} Rows\n")
             append("Total Cells: ${calculator.totalCells} (Numbered 1 to ${calculator.totalCells})")
         }

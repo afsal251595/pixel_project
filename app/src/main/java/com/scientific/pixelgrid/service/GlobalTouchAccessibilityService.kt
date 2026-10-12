@@ -36,8 +36,8 @@ class GlobalTouchAccessibilityService : AccessibilityService() {
             screenWidthPx = metrics.widthPixels,
             screenHeightPx = metrics.heightPixels,
             xdpi = metrics.xdpi,
-            ydpi = metrics.ydpi,
-            targetCellSizeMm = 5.0f
+            targetCellWidthMm = 7.0f,
+            targetCellHeightMm = 10.0f
         )
 
         try {
