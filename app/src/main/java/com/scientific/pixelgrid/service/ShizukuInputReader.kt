@@ -50,20 +50,29 @@ class ShizukuInputReader(
             try {
                 // If Shizuku is granted, we execute getevent
                 val command = arrayOf("sh", "-c", "getevent -lt")
-                val process = if (isShizukuAvailable()) {
-                    Shizuku.newProcess(command, null, null)
-                } else {
-                    // Fallback to local process if root or direct adb shell
+                val process: Process = try {
+                    if (isShizukuAvailable()) {
+                        val method = Shizuku::class.java.getDeclaredMethod(
+                            "newProcess",
+                            Array<String>::class.java,
+                            Array<String>::class.java,
+                            String::class.java
+                        )
+                        method.isAccessible = true
+                        method.invoke(null, command, null, null) as Process
+                    } else {
+                        Runtime.getRuntime().exec(command)
+                    }
+                } catch (e: Throwable) {
                     Runtime.getRuntime().exec(command)
                 }
 
                 val reader = BufferedReader(InputStreamReader(process.inputStream))
-                var line: String?
-
                 Log.d(TAG, "Touch interceptor started successfully.")
 
-                while (isActive && reader.readLine().also { line = it } != null) {
-                    parseLine(line ?: "")
+                while (isActive) {
+                    val line = reader.readLine() ?: break
+                    parseLine(line)
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Background input reader note: ${e.message}")

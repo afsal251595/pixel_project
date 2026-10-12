@@ -192,12 +192,12 @@ class MainActivity : AppCompatActivity() {
             binding.tvServiceStatus.text = "Status: Active (Continuous 2-Week Logging)"
             binding.tvServiceStatus.setTextColor(Color.parseColor("#10B981"))
             binding.btnToggleService.text = "Stop Background Service"
-            binding.btnToggleService.backgroundTintList = getColorStateList(R.color.accent_rose)
+            binding.btnToggleService.backgroundTintList = ContextCompat.getColorStateList(this, R.color.accent_rose)
         } else {
             binding.tvServiceStatus.text = "Status: Stopped"
             binding.tvServiceStatus.setTextColor(Color.parseColor("#F43F5E"))
             binding.btnToggleService.text = "Start Background Service"
-            binding.btnToggleService.backgroundTintList = getColorStateList(R.color.accent_green)
+            binding.btnToggleService.backgroundTintList = ContextCompat.getColorStateList(this, R.color.accent_green)
         }
 
         binding.tvTouchCounter.text = "Total Recorded Touches: ${logger.getTotalCount()}"
