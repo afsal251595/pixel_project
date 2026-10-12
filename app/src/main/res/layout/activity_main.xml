@@ -202,6 +202,15 @@
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/tvTouchCounter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Total Recorded Touches: 0"
+                    android:textColor="@color/accent_amber"
+                    android:textSize="13sp" />
+
+                <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
