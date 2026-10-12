@@ -11,8 +11,8 @@ import com.scientific.pixelgrid.model.GridCalculator
 import com.scientific.pixelgrid.storage.TouchFileLogger
 
 /**
- * 24/7 Global Touch Interceptor using Android AccessibilityService.
- * Intercepts user touches across home screen, apps, and keyboard.
+ * 24/7 Crash-Proof Global Touch Interceptor using Android AccessibilityService.
+ * Intercepts touches across home screen, apps, and keyboard.
  */
 class GlobalTouchAccessibilityService : AccessibilityService() {
 
@@ -40,56 +40,68 @@ class GlobalTouchAccessibilityService : AccessibilityService() {
             targetCellSizeMm = 5.0f
         )
 
-        val info = serviceInfo ?: AccessibilityServiceInfo()
-        info.eventTypes = AccessibilityEvent.TYPE_VIEW_CLICKED or
-                AccessibilityEvent.TYPE_VIEW_SELECTED or
-                AccessibilityEvent.TYPE_VIEW_SCROLLED or
-                AccessibilityEvent.TYPE_TOUCH_INTERACTION_START
-        info.feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
-        info.notificationTimeout = 20
-        info.flags = info.flags or
-                AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
-                AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS or
-                AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS
+        try {
+            val info = serviceInfo ?: AccessibilityServiceInfo()
+            info.eventTypes = AccessibilityEvent.TYPE_VIEW_CLICKED or
+                    AccessibilityEvent.TYPE_VIEW_SELECTED or
+                    AccessibilityEvent.TYPE_VIEW_SCROLLED or
+                    AccessibilityEvent.TYPE_TOUCH_INTERACTION_START or
+                    AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+            info.feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
+            info.notificationTimeout = 20
+            info.flags = info.flags or
+                    AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
+                    AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS or
+                    AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS
 
-        serviceInfo = info
-        Log.d(TAG, "GlobalTouchAccessibilityService connected with physical metrics: ${gridCalculator.getSummary()}")
+            serviceInfo = info
+        } catch (t: Throwable) {
+            Log.e(TAG, "Error setting serviceInfo", t)
+        }
+
+        Log.d(TAG, "GlobalTouchAccessibilityService connected successfully.")
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
 
-        val now = System.currentTimeMillis()
-        if (now - lastRecordedTime < 120) return // 120ms debounce
+        try {
+            val now = System.currentTimeMillis()
+            if (now - lastRecordedTime < 100) return // 100ms debounce
 
-        // 1. Try direct event.source
-        var targetNode: AccessibilityNodeInfo? = event.source
-
-        // 2. Fallback to event records if source is null
-        if (targetNode == null && event.recordCount > 0) {
-            targetNode = event.getRecord(0)?.source
-        }
-
-        if (targetNode != null) {
+            var node: AccessibilityNodeInfo? = null
             try {
+                node = event.source
+            } catch (t: Throwable) {
+                // Ignore IPC retrieval error
+            }
+
+            if (node == null && event.recordCount > 0) {
+                try {
+                    node = event.getRecord(0)?.source
+                } catch (t: Throwable) {
+                    // Ignore record retrieval error
+                }
+            }
+
+            if (node != null) {
                 val bounds = Rect()
-                targetNode.getBoundsInScreen(bounds)
+                node.getBoundsInScreen(bounds)
 
-                // Ignore full-screen root containers to avoid fake center repeats
-                val isRootContainer = bounds.width() >= (gridCalculator.screenWidthPx * 0.9f) &&
-                        bounds.height() >= (gridCalculator.screenHeightPx * 0.9f)
-
-                if (!bounds.isEmpty && bounds.width() > 0 && bounds.height() > 0 && !isRootContainer) {
+                // If bounds are valid, log the cell
+                if (!bounds.isEmpty && bounds.width() > 0 && bounds.height() > 0) {
                     val touchX = bounds.exactCenterX()
                     val touchY = bounds.exactCenterY()
                     val cell = gridCalculator.getCellNumber(touchX, touchY)
+
                     logger.recordTouch(cell)
                     lastRecordedTime = now
-                    Log.d(TAG, "Global Touch: Cell #$cell at ($touchX, $touchY)")
+                    Log.d(TAG, "Touch Logged: Cell #$cell at ($touchX, $touchY) on event ${event.eventType}")
                 }
-            } finally {
-                try { targetNode.recycle() } catch (e: Exception) {}
             }
+        } catch (t: Throwable) {
+            // Never allow an unhandled Throwable to crash the Accessibility Service
+            Log.e(TAG, "Safe catch in onAccessibilityEvent", t)
         }
     }
 

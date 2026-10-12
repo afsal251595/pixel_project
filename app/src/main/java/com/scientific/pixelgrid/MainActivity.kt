@@ -70,6 +70,10 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateUI()
+        lifecycleScope.launch {
+            binding.tvLogPreview.text = logger.getRecentPreview(25)
+            binding.tvTouchCounter.text = "Total Recorded Touches: ${logger.getTotalCount()}"
+        }
     }
 
     private fun initGridCalculator() {
