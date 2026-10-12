@@ -44,9 +44,9 @@ class TouchTrackingService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        logger = TouchFileLogger(this)
+        logger = TouchFileLogger.getInstance(this)
 
-        val metrics = resources.displayMetrics
+        val metrics = com.scientific.pixelgrid.model.DisplayMetricsHelper.getPhysicalMetrics(this)
         gridCalculator = GridCalculator(
             screenWidthPx = metrics.widthPixels,
             screenHeightPx = metrics.heightPixels,

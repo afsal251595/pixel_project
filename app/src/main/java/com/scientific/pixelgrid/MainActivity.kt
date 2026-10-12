@@ -42,7 +42,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        logger = TouchFileLogger(this)
+        logger = TouchFileLogger.getInstance(this)
         updater = AppUpdater(this)
 
         initGridCalculator()
@@ -50,6 +50,15 @@ class MainActivity : AppCompatActivity() {
 
         // Auto-start background tracker service on launch
         checkPermissionsAndStart()
+
+        // Real-time observation of touch log updates
+        lifecycleScope.launch {
+            logger.recentPreviewFlow.collect { preview ->
+                binding.tvLogPreview.text = preview
+                binding.tvTouchCounter.text = "Total Recorded Touches: ${logger.getTotalCount()}"
+            }
+        }
+
         updateUI()
     }
 
@@ -59,7 +68,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initGridCalculator() {
-        val metrics = resources.displayMetrics
+        val metrics = DisplayMetricsHelper.getPhysicalMetrics(this)
         calculator = GridCalculator(
             screenWidthPx = metrics.widthPixels,
             screenHeightPx = metrics.heightPixels,
@@ -97,6 +106,15 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
             startActivity(intent)
             Toast.makeText(this, "Enable 'Touch Grid Tracker' to capture touches across all apps", Toast.LENGTH_LONG).show()
+        }
+
+        // Open App Info for Android 13/14 Restricted Settings Unlock
+        binding.btnUnlockRestricted.setOnClickListener {
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.parse("package:$packageName")
+            }
+            startActivity(intent)
+            Toast.makeText(this, "Tap the 3 dots (⋮) in top-right -> 'Allow restricted settings'", Toast.LENGTH_LONG).show()
         }
 
         // Open Calibration / Visual Test Screen

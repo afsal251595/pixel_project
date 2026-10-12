@@ -23,8 +23,8 @@ class CalibrationActivity : AppCompatActivity() {
 
         enableImmersiveMode()
 
-        logger = TouchFileLogger(this)
-        val metrics = resources.displayMetrics
+        logger = TouchFileLogger.getInstance(this)
+        val metrics = com.scientific.pixelgrid.model.DisplayMetricsHelper.getPhysicalMetrics(this)
         calculator = GridCalculator(
             screenWidthPx = metrics.widthPixels,
             screenHeightPx = metrics.heightPixels,

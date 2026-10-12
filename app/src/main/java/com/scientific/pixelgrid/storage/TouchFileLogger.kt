@@ -5,6 +5,8 @@ import android.content.Intent
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -12,64 +14,60 @@ import java.io.FileWriter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicLong
 
 /**
- * Thread-safe, buffered persistent logger for scientific touch positions.
- * Saves touches in format: 75, 72, 14, ...
- * Designed for continuous 2-week operation with low memory and flash wear.
+ * Thread-safe Singleton persistent logger for scientific touch positions.
+ * Saves touches immediately in format: 75, 72, 14, ...
  */
-class TouchFileLogger(private val context: Context) {
+class TouchFileLogger private constructor(private val appContext: Context) {
+
+    companion object {
+        @Volatile
+        private var instance: TouchFileLogger? = null
+
+        fun getInstance(context: Context): TouchFileLogger {
+            return instance ?: synchronized(this) {
+                instance ?: TouchFileLogger(context.applicationContext).also { instance = it }
+            }
+        }
+    }
 
     private val logFileName = "touch_log.txt"
     private val scope = CoroutineScope(Dispatchers.IO)
-    private val buffer = ConcurrentLinkedQueue<Int>()
     private val totalTouchCount = AtomicLong(0)
     private var lastTouchedCell: Int = -1
 
-    // Listener for UI updates
-    var onTouchLogged: ((cellId: Int, totalCount: Long) -> Unit)? = null
+    private val _recentPreviewFlow = MutableStateFlow<String>("No touches recorded yet")
+    val recentPreviewFlow: StateFlow<String> = _recentPreviewFlow
 
     init {
-        // Read existing count from file on startup if it exists
-        val logFile = getLogFile()
-        if (logFile.exists()) {
-            val text = logFile.readText().trim()
-            if (text.isNotEmpty()) {
-                val count = text.split(",").filter { it.isNotBlank() }.size
-                totalTouchCount.set(count.toLong())
+        // Read existing count from file on startup
+        scope.launch {
+            val logFile = getLogFile()
+            if (logFile.exists()) {
+                val text = logFile.readText().trim()
+                if (text.isNotEmpty()) {
+                    val tokens = text.split(",").filter { it.isNotBlank() }
+                    totalTouchCount.set(tokens.size.toLong())
+                    _recentPreviewFlow.value = tokens.takeLast(25).joinToString(", ")
+                }
             }
         }
     }
 
     fun getLogFile(): File {
-        val dir = context.getExternalFilesDir(null) ?: context.filesDir
+        val dir = appContext.getExternalFilesDir(null) ?: appContext.filesDir
         return File(dir, logFileName)
     }
 
     /**
-     * Record a new touch cell ID.
-     * Deduplicates immediate consecutive duplicates if within threshold.
+     * Record a new touch cell ID and write immediately to touch_log.txt.
      */
     fun recordTouch(cellId: Int) {
+        if (cellId <= 0) return
         lastTouchedCell = cellId
-        val newTotal = totalTouchCount.incrementAndGet()
-        buffer.add(cellId)
-
-        onTouchLogged?.invoke(cellId, newTotal)
-
-        // Flush buffer to disk if 10 or more items accumulate
-        if (buffer.size >= 10) {
-            flushBuffer()
-        }
-    }
-
-    /**
-     * Flushes buffered touches to touch_log.txt.
-     */
-    fun flushBuffer() {
-        if (buffer.isEmpty()) return
+        totalTouchCount.incrementAndGet()
 
         scope.launch {
             synchronized(this@TouchFileLogger) {
@@ -78,17 +76,20 @@ class TouchFileLogger(private val context: Context) {
                     val existsWithContent = file.exists() && file.length() > 0
 
                     FileWriter(file, true).use { writer ->
-                        var isFirstInWrite = !existsWithContent
-                        while (!buffer.isEmpty()) {
-                            val id = buffer.poll() ?: break
-                            if (!isFirstInWrite) {
-                                writer.write(", ")
-                            } else {
-                                isFirstInWrite = false
-                            }
-                            writer.write(id.toString())
+                        if (existsWithContent) {
+                            writer.write(", ")
                         }
+                        writer.write(cellId.toString())
                         writer.flush()
+                    }
+
+                    // Update live preview in memory
+                    val currentPreview = _recentPreviewFlow.value
+                    if (currentPreview == "No touches recorded yet" || currentPreview.isEmpty()) {
+                        _recentPreviewFlow.value = cellId.toString()
+                    } else {
+                        val items = (currentPreview.split(",").map { it.trim() } + cellId.toString()).takeLast(25)
+                        _recentPreviewFlow.value = items.joinToString(", ")
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -101,11 +102,7 @@ class TouchFileLogger(private val context: Context) {
 
     fun getTotalCount(): Long = totalTouchCount.get()
 
-    /**
-     * Returns the last N cell IDs as a formatted preview string (e.g., "75, 72, 14, ...").
-     */
-    suspend fun getRecentPreview(limit: Int = 15): String = withContext(Dispatchers.IO) {
-        flushBuffer()
+    suspend fun getRecentPreview(limit: Int = 25): String = withContext(Dispatchers.IO) {
         val file = getLogFile()
         if (!file.exists() || file.length() == 0L) {
             return@withContext "No touches recorded yet"
@@ -121,13 +118,10 @@ class TouchFileLogger(private val context: Context) {
         }
     }
 
-    /**
-     * Clears all recorded touch data.
-     */
     fun clearLog() {
-        buffer.clear()
         totalTouchCount.set(0)
         lastTouchedCell = -1
+        _recentPreviewFlow.value = "No touches recorded yet"
         scope.launch {
             synchronized(this@TouchFileLogger) {
                 val file = getLogFile()
@@ -138,17 +132,13 @@ class TouchFileLogger(private val context: Context) {
         }
     }
 
-    /**
-     * Creates an Android Share Sheet intent so the scientist can export/email/backup the log.
-     */
     fun createShareIntent(): Intent? {
-        flushBuffer()
         val file = getLogFile()
         if (!file.exists() || file.length() == 0L) return null
 
         val uri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
+            appContext,
+            "${appContext.packageName}.fileprovider",
             file
         )
 
